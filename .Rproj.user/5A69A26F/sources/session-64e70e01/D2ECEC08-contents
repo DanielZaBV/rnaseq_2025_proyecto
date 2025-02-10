@@ -1,0 +1,194 @@
+---
+title: "Psychoactive pharmaceuticals at environmental concentrations induce in vitro gene expressions associated with neurological disorders"
+subtitle: "A differential gene expression analysis"
+author: "Daniel Bautista"
+output: 
+  pdf_document:
+    latex_engine: lualatex
+    toc: true
+    toc_depth: 3
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+date: "2025-02-10"
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+It was tested if psychoactive pharmaceuticals (fluoxetine, carbamazapine, venlafaxine) at lower concentrations (in ppb) could induce gene expressions linked with neurological disoders. Overall design: We used human nueronal cells as a model to study gene expressions induced by psychoactive pharmaceuticals at lower concentrations.
+
+# Objectives
+
+## General objective
+
+Determine the gene expressions induced by psychoactive pharmaceuticals at lower concentrations.
+
+## Specific objectives
+
+- To identify the gene expressions induced by psychoactive pharmaceuticals at lower concentrations.
+
+# Methods
+
+## Data Processing
+
+Used the data from the study of @Kaushik2016 uploaded to the recount3 database. The data was processed using the recount3 package in R.
+
+### Libraries
+
+```{r message=FALSE}
+library(recount3)
+library(limma)
+library(edgeR)
+library(ggplot2)
+library(pheatmap)
+```
+
+### Collect data
+```{r message=FALSE}
+raw_data <- recount3::create_rse_manual(
+    project = "SRP073802",
+    project_home = "data_sources/sra",
+    organism = "human",
+    annotation = "gencode_v26",
+    type = "gene"
+)
+```
+
+### Data formatting
+
+```{r message=FALSE}
+assay(raw_data, "counts") <- compute_read_counts(raw_data)
+
+raw_data <- expand_sra_attributes(raw_data)
+colData(raw_data)[
+    ,
+    grepl("^sra_attribute", colnames(colData(raw_data)))
+]
+```
+```{r}
+raw_data$assigned_gene_prop <- raw_data$recount_qc.gene_fc_count_all.assigned / raw_data$recount_qc.gene_fc_count_all.total
+summary(raw_data$assigned_gene_prop)
+```
+
+### Data cleaning
+
+```{r echo=FALSE}
+hist(raw_data$assigned_gene_prop)
+```
+```{r}
+gene_means <- rowMeans(assay(raw_data, "counts"))
+summary(gene_means)
+## Eliminamos genes
+data <- raw_data[gene_means > 0.1, ]
+
+## Dimensiones finales
+dim(data)
+## Porcentaje de genes que retuvimos
+round(nrow(data) / nrow(raw_data) * 100, 2)
+```
+### Data normalization
+
+```{r message=FALSE}
+dge <- DGEList(
+    counts = assay(data, "counts"),
+    genes = rowData(data)
+)
+dge <- calcNormFactors(dge)
+```
+
+
+
+### Expression analysis
+```{r echo=FALSE}
+ggplot(as.data.frame(colData(data)), aes(y = data$assigned_gene_prop, x = data$sra_attribute.treatment)) +
+    geom_boxplot() +
+    theme_bw(base_size = 20) +
+    ylab("Assigned Gene Prop") +
+    xlab("Treatment")
+```
+```{r message=FALSE}
+mod <- model.matrix(~ data$sra_attribute.treatment + assigned_gene_prop,
+    data = colData(data)
+)
+colnames(mod)
+```
+
+```{r echo=FALSE}
+vGene <- voom(dge, mod, plot = TRUE)
+
+```
+
+```{r message=FALSE}
+eb_results <- eBayes(lmFit(vGene))
+
+de_results <- topTable(
+    eb_results,
+    coef = 2,
+    number = nrow(data),
+    sort.by = "none"
+)
+dim(de_results)
+```
+
+```{r echo=FALSE}
+plotMA(eb_results, coef = 2)
+```
+```{r echo=FALSE}
+volcanoplot(eb_results, coef = 2, highlight = 3, names = de_results$gene_name)
+```
+```{r message=FALSE}
+de_results[de_results$gene_name %in% c("C7", "THBS1", "STRA6"), ]
+```
+### Visualization
+
+```{r echo=FALSE}
+exprs_heatmap <- vGene$E[rank(de_results$adj.P.Val) <= 50, ]
+## Extraer valores de los genes de interés
+nombres_originales <-  de_results$gene_name[rank(de_results$adj.P.Val) <= 50]
+
+## Para guardar los nombres de los genes
+gene_names <- data@rowRanges@elementMetadata@listData[["gene_name"]]
+
+# Usar match() para alinear los nombres de los genes con las filas de exprs_heatmap
+rownames(exprs_heatmap) <- gene_names[match(nombres_originales, gene_names)]
+##Heatmap
+pheatmap(
+    exprs_heatmap,
+    cluster_rows = FALSE,
+    cluster_cols = TRUE,
+    show_rownames = TRUE,
+    show_colnames = FALSE,
+    annotation_col = data.frame(
+        data$sra_attribute.treatment,
+        row.names = colnames(vGene$E)
+    ), 
+    height =100, width = 100
+)
+```
+
+# Results:
+
+## C7 (Complement C7)
+Function: The C7 gene encodes a protein that is part of the complement system, a critical part of the immune response. The complement system helps defend against pathogens and clear dead cells, but its overactivation can lead to inflammation.
+
+Relevance to Brain Degeneration: Dysregulation of the complement system has been implicated in several neurodegenerative diseases, including Alzheimer’s disease and multiple sclerosis. Complement proteins, including C7, can contribute to neuroinflammation, which is a key factor in the progression of cerebral degeneration.
+## THBS1 (Thrombospondin 1)
+Function: THBS1 encodes a glycoprotein involved in the extracellular matrix (ECM) and plays a role in cell adhesion, migration, and tissue remodeling. It has a significant impact on synaptic function and neurogenesis.
+
+Relevance to Brain Degeneration: Thrombospondin 1 has been linked to neurodegenerative diseases such as Alzheimer’s disease, where it influences the formation of amyloid plaques and regulates synaptic activity. Overexpression of THBS1 is thought to contribute to the pathological changes seen in neurodegeneration, especially by affecting the blood-brain barrier and promoting the degeneration of neural tissue.
+## STRA6 (Stimulated by Retinoic Acid 6)
+Function: STRA6 is involved in the cellular uptake of retinol (vitamin A) and is essential for the retinoic acid signaling pathway. Retinoic acid plays a critical role in brain development, neurogenesis, and synaptic plasticity.
+
+Relevance to Brain Degeneration: Retinoic acid signaling is crucial for brain function, and its disruption has been implicated in various neurodegenerative disorders, including Parkinson’s disease and Alzheimer's disease. Altered STRA6 expression can impair retinol uptake, which may contribute to neurodegeneration by affecting neural development and the ability to repair damaged neurons.
+
+# Conclusions
+
+The gene expressions of C7, THBS1, and STRA6 were significantly altered by psychoactive pharmaceuticals at lower concentrations. These genes are associated with neurological disorders and play essential roles in brain function and degeneration. The findings suggest that exposure to psychoactive pharmaceuticals may impact the expression of genes linked to neurodegenerative diseases, highlighting the need for further research on the potential neurological effects of environmental contaminants.
+
+# References

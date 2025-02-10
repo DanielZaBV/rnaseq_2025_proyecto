@@ -1,0 +1,29 @@
+"0","raw_data <- recount3::create_rse_manual("
+"0","    project = ""SRP073802"","
+"0","    project_home = ""data_sources/sra"","
+"0","    organism = ""human"","
+"0","    annotation = ""gencode_v26"","
+"0","    type = ""gene"""
+"0",")"
+"2","2025-02-10 03:54:54.655814 downloading and reading the metadata.
+"
+"2","2025-02-10 03:54:55.778608 caching file sra.sra.SRP073802.MD.gz.
+"
+"2","2025-02-10 03:54:56.339633 caching file sra.recount_project.SRP073802.MD.gz.
+"
+"2","2025-02-10 03:54:56.865265 caching file sra.recount_qc.SRP073802.MD.gz.
+"
+"2","2025-02-10 03:54:57.395117 caching file sra.recount_seq_qc.SRP073802.MD.gz.
+"
+"2","2025-02-10 03:54:58.00239 caching file sra.recount_pred.SRP073802.MD.gz.
+"
+"2","2025-02-10 03:54:58.585989 downloading and reading the feature information.
+"
+"2","2025-02-10 03:54:59.101508 caching file human.gene_sums.G026.gtf.gz.
+"
+"2","2025-02-10 03:54:59.560291 downloading and reading the counts: 9 samples across 63856 features.
+"
+"2","2025-02-10 03:55:00.078155 caching file sra.gene_sums.SRP073802.G026.gz.
+"
+"2","2025-02-10 03:55:00.239362 constructing the RangedSummarizedExperiment (rse) object.
+"

@@ -1,0 +1,17 @@
+"0","library(""edgeR"")"
+"2","Cargando paquete requerido: limma
+"
+"2","
+Adjuntando el paquete: ‘limma’
+
+"
+"2","The following object is masked from ‘package:BiocGenerics’:
+
+    plotMA
+
+"
+"0","dge <- DGEList("
+"0","    counts = assay(data, ""counts""),"
+"0","    genes = rowData(data)"
+"0",")"
+"0","dge <- calcNormFactors(dge)"
